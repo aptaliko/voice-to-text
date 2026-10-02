@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="el">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Υπαγόρευση Συμβολαίων</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <h1>Υπαγόρευση Συμβολαίων</h1>
+    <p class="muted">Ό,τι επεξεργάζεται εδώ μένει στον δικό σας διακομιστή.</p>
+  </header>
+
+  <main>
+    <section class="inputs">
+      <div class="card">
+        <h2>Υπαγόρευση</h2>
+        <button id="record" class="record" type="button">
+          <span class="dot"></span><span id="record-label">Έναρξη εγγραφής</span>
+        </button>
+        <div id="timer" class="timer" hidden>00:00</div>
+        <p class="hint">Πείτε «νέα παράγραφος» ή «νέα γραμμή» για αλλαγή. Μια μεγάλη παύση ξεκινά επίσης νέα παράγραφο.</p>
+        <label class="file-button">
+          Ανέβασμα ηχητικού αρχείου
+          <input id="audio-file" type="file" accept="audio/*,video/mp4,.m4a,.amr,.3gp" multiple hidden>
+        </label>
+      </div>
+
+      <div class="card">
+        <h2>Σάρωση εγγράφου</h2>
+        <p class="hint">PDF, σαρωμένες σελίδες ή φωτογραφίες από το κινητό.</p>
+        <label class="file-button">
+          Επιλογή αρχείων
+          <input id="scan-file" type="file" accept="application/pdf,image/*,.tif,.tiff" multiple hidden>
+        </label>
+      </div>
+
+      <div class="card">
+        <h2>Εργασίες</h2>
+        <ul id="jobs" class="jobs"><li class="muted empty">Καμία εργασία ακόμη.</li></ul>
+      </div>
+    </section>
+
+    <section class="card editor">
+      <h2>Κείμενο</h2>
+      <label>Τίτλος (προαιρετικά)
+        <input id="title" type="text" placeholder="π.χ. ΣΥΜΒΟΛΑΙΟ ΑΓΟΡΑΠΩΛΗΣΙΑΣ">
+      </label>
+      <textarea id="text" spellcheck="true" lang="el"
+        placeholder="Το κείμενο από την υπαγόρευση ή τη σάρωση εμφανίζεται εδώ. Μπορείτε να το διορθώσετε πριν το κατεβάσετε."></textarea>
+      <div class="actions">
+        <label class="filename">Όνομα αρχείου
+          <input id="filename" type="text" value="symvolaio">
+        </label>
+        <button id="download" class="primary" type="button">Λήψη Word (.docx)</button>
+        <button id="copy" type="button">Αντιγραφή</button>
+        <button id="clear" type="button" class="danger">Καθαρισμός</button>
+      </div>
+      <p id="status" class="status" role="status"></p>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

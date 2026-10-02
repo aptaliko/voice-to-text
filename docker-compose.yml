@@ -1,0 +1,19 @@
+services:
+  voice-to-text:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      APP_USERNAME: ${APP_USERNAME:?set APP_USERNAME in .env}
+      APP_PASSWORD: ${APP_PASSWORD:?set APP_PASSWORD in .env}
+    # Only reachable from the host; nginx on the host terminates HTTPS.
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - models:/models
+    # Keep transcription from starving the website on the same server.
+    cpus: ${APP_CPUS:-4}
+    mem_limit: ${APP_MEMORY:-6g}
+
+volumes:
+  models:

@@ -1,0 +1,28 @@
+# /etc/nginx/sites-available/symvolaia.example.gr
+# HTTPS is required: browsers only allow microphone access on https:// pages.
+# Get a certificate with: certbot --nginx -d symvolaia.example.gr
+server {
+    listen 443 ssl http2;
+    server_name symvolaia.example.gr;
+
+    ssl_certificate     /etc/letsencrypt/live/symvolaia.example.gr/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/symvolaia.example.gr/privkey.pem;
+
+    # Long dictations and multi-page PDFs.
+    client_max_body_size 200m;
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300s;
+        proxy_request_buffering off;
+    }
+}
+
+server {
+    listen 80;
+    server_name symvolaia.example.gr;
+    return 301 https://$host$request_uri;
+}
