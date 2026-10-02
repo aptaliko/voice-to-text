@@ -1,21 +1,14 @@
 """Speech-to-text with faster-whisper, running locally on CPU."""
 
-import re
 import threading
 from pathlib import Path
 
 from .config import settings
+from .dictation import apply_commands
 from .jobs import ProgressFn
 
 # A pause this long (seconds) between segments starts a new paragraph.
 PARAGRAPH_PAUSE = 2.5
-
-# Spoken formatting commands. Accents are optional because Whisper is not
-# always consistent with them.
-_COMMANDS = [
-    (re.compile(r",?\s*\bν[εέ]α\s+παρ[αά]γραφο[ςσ]?\b[.,]?\s*", re.IGNORECASE), "\n\n"),
-    (re.compile(r",?\s*\bν[εέ]α\s+γραμμ[ηή]\b[.,]?\s*", re.IGNORECASE), "\n"),
-]
 
 _model = None
 _model_lock = threading.Lock()
@@ -35,14 +28,6 @@ def _get_model():
                 download_root=str(settings.model_dir),
             )
         return _model
-
-
-def apply_commands(text: str) -> str:
-    for pattern, replacement in _COMMANDS:
-        text = pattern.sub(replacement, text)
-    # Capitalise the first letter after a forced break.
-    text = re.sub(r"(\n+)(\w)", lambda m: m.group(1) + m.group(2).upper(), text)
-    return re.sub(r"[ \t]+\n", "\n", text).strip()
 
 
 def join_segments(segments: list[tuple[float, float, str]]) -> str:

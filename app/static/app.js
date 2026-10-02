@@ -284,4 +284,26 @@ window.addEventListener("beforeunload", (event) => {
   if (recorder || pending.length) event.preventDefault();
 });
 
+async function loadCommands() {
+  try {
+    const response = await fetch("/api/commands");
+    if (!response.ok) return;
+    const body = $("commands");
+    for (const { say, symbol, note } of await response.json()) {
+      const row = body.insertRow();
+      const sayCell = row.insertCell();
+      sayCell.textContent = `«${say}»`;
+      if (note) {
+        const small = document.createElement("small");
+        small.textContent = note;
+        sayCell.append(document.createElement("br"), small);
+      }
+      const cell = row.insertCell();
+      cell.className = "symbol";
+      cell.textContent = symbol;
+    }
+  } catch (_) { /* help is optional */ }
+}
+
 loadDraft();
+loadCommands();

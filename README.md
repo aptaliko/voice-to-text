@@ -11,9 +11,27 @@ The only outbound connection is a one-time download of the Whisper model (~1.6 G
 
 ## Dictation tips
 
-- Say **«νέα παράγραφος»** for a new paragraph and **«νέα γραμμή»** for a line break. A pause of 2.5 s or more also starts a new paragraph.
 - Dictate in chunks (one clause per recording). Each result is appended to the text in order.
+- A pause of 2.5 s or more starts a new paragraph.
 - Add recurring names and terms (notaries, areas, standard phrases) to `WHISPER_PROMPT` in `.env` to improve spelling.
+
+### Voice commands for symbols
+
+Say the word and it is replaced by the symbol. The full list is under «Φωνητικές εντολές» in the page.
+
+| Say | Get | Example |
+|---|---|---|
+| νέα παράγραφος / νέα γραμμή | paragraph / line break | |
+| τελεία, κόμμα, άνω και κάτω τελεία, άνω τελεία, ερωτηματικό, θαυμαστικό | `. , : · ; !` | |
+| παύλα | `-` | «05 παύλα 001» → `05-001`, «Αθήνα παύλα Πειραιάς» → `Αθήνα - Πειραιάς` |
+| κάθετος | `/` | «1234 κάθετος 2020» → `1234/2020` |
+| τοις εκατό | `%` | «50 τοις εκατό» → `50%` |
+| άνοιγμα / κλείσιμο παρένθεσης | `( )` | |
+| άνοιγμα / κλείσιμο εισαγωγικών | `« »` | |
+| σύμβολο παραγράφου | `§` | «σύμβολο παραγράφου 3» → `§ 3` |
+
+«κάθετος» and «τοις εκατό» only turn into symbols next to a number, so «κάθετος τοίχος» or «πενήντα τοις εκατό» stay as words.
+To add a command, add a line to `COMMANDS` in `app/dictation.py` (and a test case in `tests/test_dictation.py`).
 
 ## Deploying on the Hetzner server
 

@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from . import ocr, transcribe
+from .dictation import command_list
 from .config import settings
 from .docx_export import build_docx
 from .jobs import JobQueue
@@ -68,6 +69,11 @@ async def _save_upload(upload: UploadFile, allowed: set[str]) -> Path:
 @app.get("/api/health")
 def health() -> dict:
     return {"status": "ok"}
+
+
+@app.get("/api/commands", dependencies=[Depends(require_auth)])
+def commands() -> list[dict]:
+    return command_list()
 
 
 @app.post("/api/transcribe", dependencies=[Depends(require_auth)])

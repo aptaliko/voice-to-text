@@ -1,5 +1,6 @@
 from app.ocr import fix_homoglyphs, reflow
-from app.transcribe import apply_commands, join_segments
+from app.dictation import apply_commands
+from app.transcribe import join_segments
 
 
 def test_long_pause_starts_new_paragraph():

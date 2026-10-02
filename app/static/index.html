@@ -20,7 +20,11 @@
           <span class="dot"></span><span id="record-label">Έναρξη εγγραφής</span>
         </button>
         <div id="timer" class="timer" hidden>00:00</div>
-        <p class="hint">Πείτε «νέα παράγραφος» ή «νέα γραμμή» για αλλαγή. Μια μεγάλη παύση ξεκινά επίσης νέα παράγραφο.</p>
+        <p class="hint">Μια μεγάλη παύση ξεκινά νέα παράγραφο. Για σύμβολα, πείτε τη λέξη:</p>
+        <details class="commands">
+          <summary>Φωνητικές εντολές</summary>
+          <table><tbody id="commands"></tbody></table>
+        </details>
         <label class="file-button">
           Ανέβασμα ηχητικού αρχείου
           <input id="audio-file" type="file" accept="audio/*,video/mp4,.m4a,.amr,.3gp" multiple hidden>
