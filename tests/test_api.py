@@ -1,3 +1,4 @@
+import dataclasses
 import time
 
 import pytest
@@ -10,7 +11,7 @@ AUTH = ("user", "secret")
 
 @pytest.fixture
 def client(monkeypatch):
-    monkeypatch.setattr(main.transcribe, "transcribe", lambda path, progress: f"κείμενο από {path.suffix}")
+    monkeypatch.setattr(main.transcribe, "transcribe", lambda path, progress, correct=False: f"κείμενο από {path.suffix}")
     return TestClient(main.app)
 
 
@@ -57,3 +58,23 @@ def test_export_docx(client):
     assert response.status_code == 200
     assert response.content[:2] == b"PK"
     assert "filename*=UTF-8''%CE%A3" in response.headers["content-disposition"]
+
+
+def test_ai_is_off_by_default(client):
+    assert client.get("/api/config", auth=AUTH).json()["ai"]["enabled"] is False
+    assert client.post("/api/correct", auth=AUTH, json={"text": "κείμενο"}).status_code == 400
+    response = client.post("/api/transcribe", auth=AUTH, data={"correct": "true"}, files={"file": ("r.webm", b"a")})
+    assert response.status_code == 400
+
+
+def test_ai_correction_job(client, monkeypatch):
+    enabled = dataclasses.replace(main.settings, ai_correction=True)
+    monkeypatch.setattr(main, "settings", enabled)
+    monkeypatch.setattr(main.correction, "settings", enabled)
+    monkeypatch.setattr(main.correction, "suggest", lambda text: text.replace("Η γνωστή", "Οι γνωστοί"))
+    response = client.post("/api/correct", auth=AUTH, json={"text": "Η γνωστή πωλητές.\n\nΆρθρο 2"})
+    job = wait_for(client, response.json()["id"])
+    assert job["status"] == "done"
+    assert job["text"] == "Οι γνωστοί πωλητές.\n\nΆρθρο 2"
+    assert job["original"] == "Η γνωστή πωλητές.\n\nΆρθρο 2"
+    assert [(c["from"], c["to"]) for c in job["corrections"]] == [("Η", "Οι"), ("γνωστή", "γνωστοί")]

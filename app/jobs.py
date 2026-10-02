@@ -14,7 +14,9 @@ from pathlib import Path
 from typing import Callable
 
 ProgressFn = Callable[[float], None]
-Processor = Callable[[Path, ProgressFn], str]
+# A processor returns the text, or a dict with "text" and optionally
+# "original", "corrections" and "warning" (AI correction results).
+Processor = Callable[[Path | None, ProgressFn], "str | dict"]
 
 
 @dataclass
@@ -26,6 +28,9 @@ class Job:
     progress: float = 0.0
     text: str = ""
     error: str = ""
+    original: str = ""  # text before AI correction
+    corrections: list = field(default_factory=list)
+    warning: str = ""
     created_at: float = field(default_factory=time.time)
     finished_at: float | None = None
 
@@ -38,6 +43,9 @@ class Job:
             "progress": round(self.progress, 3),
             "text": self.text,
             "error": self.error,
+            "original": self.original,
+            "corrections": self.corrections,
+            "warning": self.warning,
         }
 
 
@@ -48,7 +56,7 @@ class JobQueue:
         self._lock = threading.Lock()
         self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="job")
 
-    def submit(self, kind: str, filename: str, path: Path, processor: Processor) -> Job:
+    def submit(self, kind: str, filename: str, path: Path | None, processor: Processor) -> Job:
         self._expire()
         job = Job(id=uuid.uuid4().hex, kind=kind, filename=filename)
         with self._lock:
@@ -68,7 +76,14 @@ class JobQueue:
             job.progress = min(max(progress, 0.0), 1.0)
 
         try:
-            job.text = processor(path, report)
+            result = processor(path, report)
+            if isinstance(result, dict):
+                job.text = result["text"]
+                job.original = result.get("original", "")
+                job.corrections = result.get("corrections", [])
+                job.warning = result.get("warning", "")
+            else:
+                job.text = result
             job.progress = 1.0
             job.status = "done"
         except Exception as exc:  # surfaced to the user in the UI
@@ -76,7 +91,8 @@ class JobQueue:
             job.status = "error"
         finally:
             job.finished_at = time.time()
-            path.unlink(missing_ok=True)
+            if path is not None:
+                path.unlink(missing_ok=True)
 
     def _expire(self) -> None:
         cutoff = time.time() - self._ttl

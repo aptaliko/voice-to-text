@@ -1,18 +1,19 @@
 import logging
 import secrets
 import uuid
+from functools import partial
 from pathlib import Path
 from urllib.parse import quote
 
-from fastapi import Depends, FastAPI, HTTPException, UploadFile, status
+from fastapi import Depends, FastAPI, Form, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse, Response
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import ocr, transcribe
-from .dictation import command_list
+from . import correction, ocr, transcribe
 from .config import settings
+from .dictation import command_list
 from .docx_export import build_docx
 from .jobs import JobQueue
 
@@ -76,10 +77,36 @@ def commands() -> list[dict]:
     return command_list()
 
 
+@app.get("/api/config", dependencies=[Depends(require_auth)])
+def config() -> dict:
+    return {"ai": correction.status()}
+
+
+def _ai_requested(flag: bool) -> bool:
+    if flag and not settings.ai_correction:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Η διόρθωση AI είναι απενεργοποιημένη (AI_CORRECTION)")
+    return flag
+
+
 @app.post("/api/transcribe", dependencies=[Depends(require_auth)])
-async def submit_transcription(file: UploadFile) -> dict:
+async def submit_transcription(file: UploadFile, correct: bool = Form(False)) -> dict:
+    correct = _ai_requested(correct)
     path = await _save_upload(file, AUDIO_EXTENSIONS)
-    return jobs.submit("audio", file.filename or "", path, transcribe.transcribe).public()
+    processor = partial(transcribe.transcribe, correct=correct)
+    return jobs.submit("audio", file.filename or "", path, processor).public()
+
+
+class CorrectRequest(BaseModel):
+    text: str
+
+
+@app.post("/api/correct", dependencies=[Depends(require_auth)])
+def submit_correction(request: CorrectRequest) -> dict:
+    _ai_requested(True)
+    if not request.text.strip():
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Δεν υπάρχει κείμενο")
+    text = request.text
+    return jobs.submit("ai", "Διόρθωση κειμένου (AI)", None, lambda _path, progress: correction.correct_text(text, progress)).public()
 
 
 @app.post("/api/ocr", dependencies=[Depends(require_auth)])

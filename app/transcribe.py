@@ -3,6 +3,7 @@
 import threading
 from pathlib import Path
 
+from . import correction
 from .config import settings
 from .dictation import apply_commands
 from .jobs import ProgressFn
@@ -45,7 +46,9 @@ def join_segments(segments: list[tuple[float, float, str]]) -> str:
     return apply_commands("".join(parts))
 
 
-def transcribe(path: Path, progress: ProgressFn) -> str:
+def transcribe(path: Path, progress: ProgressFn, correct: bool = False) -> str | dict:
+    # With AI correction, speech-to-text is the first 70% of the progress bar.
+    share = 0.7 if correct else 1.0
     model = _get_model()
     segments, info = model.transcribe(
         str(path),
@@ -58,5 +61,8 @@ def transcribe(path: Path, progress: ProgressFn) -> str:
     for segment in segments:
         collected.append((segment.start, segment.end, segment.text))
         if info.duration:
-            progress(segment.end / info.duration)
-    return join_segments(collected)
+            progress(share * segment.end / info.duration)
+    text = join_segments(collected)
+    if not correct:
+        return text
+    return correction.correct_text(text, lambda p: progress(share + (1 - share) * p))

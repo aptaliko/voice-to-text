@@ -69,6 +69,13 @@ function renderJob(entry) {
     if (state === "running" && progress) { bar.max = 1; bar.value = progress; }
     el.append(bar);
   }
+  if (entry.warning) {
+    const warn = document.createElement("div");
+    warn.className = "state error";
+    warn.textContent = entry.warning;
+    el.append(warn);
+  }
+  if (state === "done" && entry.ai && !entry.warning) renderCorrections(entry);
   if (entry.blob && state === "error") {
     const link = document.createElement("a");
     link.href = URL.createObjectURL(entry.blob);
@@ -76,6 +83,50 @@ function renderJob(entry) {
     link.textContent = "Λήψη ηχογράφησης για να μη χαθεί";
     el.append(link);
   }
+}
+
+function renderCorrections(entry) {
+  const corrections = entry.corrections || [];
+  const box = document.createElement("details");
+  box.className = "corrections";
+  const summary = document.createElement("summary");
+  summary.textContent = corrections.length
+    ? `AI: ${corrections.length} ${corrections.length === 1 ? "διόρθωση" : "διορθώσεις"}${entry.undone ? " (αναιρέθηκαν)" : ""}`
+    : "AI: καμία διόρθωση";
+  box.append(summary);
+  if (!corrections.length) { entry.el.append(box); return; }
+  const list = document.createElement("ul");
+  for (const { from, to, context } of corrections) {
+    const item = document.createElement("li");
+    const change = document.createElement("strong");
+    change.textContent = `${from} → ${to}`;
+    const where = document.createElement("small");
+    where.textContent = `«${context}»`;
+    item.append(change, document.createElement("br"), where);
+    list.append(item);
+  }
+  box.append(list);
+  if (!entry.undone) {
+    const undo = document.createElement("button");
+    undo.type = "button";
+    undo.textContent = "Αναίρεση διορθώσεων AI";
+    undo.addEventListener("click", () => undoCorrections(entry));
+    box.append(undo);
+  }
+  entry.el.append(box);
+}
+
+function undoCorrections(entry) {
+  const position = textEl.value.indexOf(entry.text);
+  if (position === -1) {
+    setStatus("Το κείμενο έχει αλλάξει από τότε· η αναίρεση δεν είναι δυνατή.", true);
+    return;
+  }
+  textEl.value = textEl.value.slice(0, position) + entry.original + textEl.value.slice(position + entry.text.length);
+  entry.undone = true;
+  saveDraft();
+  renderJob(entry);
+  setStatus("Οι διορθώσεις AI αναιρέθηκαν.");
 }
 
 function flushResults() {
@@ -98,28 +149,37 @@ async function poll(entry) {
     const response = await fetch(`/api/jobs/${entry.id}`);
     if (!response.ok) throw new Error(await errorMessage(response));
     const job = await response.json();
-    Object.assign(entry, { state: job.status, progress: job.progress, text: job.text, error: job.error });
+    Object.assign(entry, {
+      state: job.status, progress: job.progress, text: job.text, error: job.error,
+      original: job.original, corrections: job.corrections, warning: job.warning,
+    });
   } catch (err) {
     Object.assign(entry, { state: "error", error: err.message });
   }
   renderJob(entry);
   if (entry.state === "done" || entry.state === "error") {
-    flushResults();
+    if (entry.onFinish) entry.onFinish(entry); else flushResults();
   } else {
     setTimeout(() => poll(entry), POLL_MS);
   }
 }
 
-async function submit(endpoint, file, name, blob = null) {
+function newJobEntry(name, extra = {}) {
   jobsEl.querySelector(".empty")?.remove();
   const el = document.createElement("li");
   jobsEl.prepend(el);
-  const entry = { el, name, state: "uploading", progress: 0, blob };
+  return { el, name, state: "uploading", progress: 0, ...extra };
+}
+
+async function submit(endpoint, file, name, blob = null) {
+  const ai = endpoint === "/api/transcribe" && aiEnabled && $("ai-toggle").checked;
+  const entry = newJobEntry(name, { blob, ai });
   pending.push(entry);
   renderJob(entry);
 
   const form = new FormData();
   form.append("file", file, name);
+  if (ai) form.append("correct", "true");
   try {
     const response = await fetch(endpoint, { method: "POST", body: form });
     if (!response.ok) throw new Error(await errorMessage(response));
@@ -133,6 +193,72 @@ async function submit(endpoint, file, name, blob = null) {
     flushResults();
   }
 }
+
+// ---------- AI correction (optional, behind the AI_CORRECTION flag) ----------
+
+const AI_TOGGLE_KEY = "voice-to-text-ai";
+let aiEnabled = false;
+
+async function loadConfig() {
+  let ai;
+  try {
+    const response = await fetch("/api/config");
+    if (!response.ok) return;
+    ({ ai } = await response.json());
+  } catch (_) { return; }
+  if (!ai.enabled) return;
+  aiEnabled = true;
+  $("ai-options").hidden = false;
+  $("ai-correct").hidden = false;
+  try { $("ai-toggle").checked = localStorage.getItem(AI_TOGGLE_KEY) !== "off"; } catch (_) { /* storage unavailable */ }
+  const status = $("ai-status");
+  if (ai.reachable && ai.installed) {
+    status.textContent = `Μοντέλο: ${ai.model}`;
+  } else {
+    status.textContent = ai.error || "Ο διακομιστής AI δεν είναι διαθέσιμος.";
+    status.classList.add("error");
+  }
+}
+
+$("ai-toggle").addEventListener("change", (event) => {
+  try { localStorage.setItem(AI_TOGGLE_KEY, event.target.checked ? "on" : "off"); } catch (_) { /* storage unavailable */ }
+});
+
+$("ai-correct").addEventListener("click", async () => {
+  const submitted = textEl.value;
+  if (!submitted.trim()) { setStatus("Δεν υπάρχει κείμενο για διόρθωση.", true); return; }
+  const button = $("ai-correct");
+  button.disabled = true;
+  const entry = newJobEntry("Διόρθωση κειμένου (AI)", { ai: true });
+  entry.onFinish = (done) => {
+    button.disabled = false;
+    if (done.state !== "done" || done.warning) return;
+    if (textEl.value !== submitted) {
+      setStatus("Το κείμενο άλλαξε όσο γινόταν η διόρθωση· δεν εφαρμόστηκε. Δοκιμάστε ξανά.", true);
+      return;
+    }
+    textEl.value = done.text;
+    saveDraft();
+    setStatus(done.corrections.length ? "Εφαρμόστηκαν οι διορθώσεις AI." : "Η AI δεν βρήκε κάτι να διορθώσει.");
+  };
+  renderJob(entry);
+  try {
+    const response = await fetch("/api/correct", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: submitted }),
+    });
+    if (!response.ok) throw new Error(await errorMessage(response));
+    const job = await response.json();
+    Object.assign(entry, { id: job.id, state: job.status });
+    renderJob(entry);
+    poll(entry);
+  } catch (err) {
+    Object.assign(entry, { state: "error", error: err.message });
+    renderJob(entry);
+    button.disabled = false;
+  }
+});
 
 // ---------- recording ----------
 
@@ -307,3 +433,4 @@ async function loadCommands() {
 
 loadDraft();
 loadCommands();
+loadConfig();

@@ -14,6 +14,10 @@ DEFAULT_PROMPT = (
 )
 
 
+def _bool(name: str) -> bool:
+    return os.getenv(name, "").strip().lower() in ("1", "true", "yes", "on")
+
+
 def _int(name: str, default: int) -> int:
     value = os.getenv(name)
     return int(value) if value else default
@@ -33,6 +37,14 @@ class Settings:
 
     ocr_languages: str = field(default_factory=lambda: os.getenv("OCR_LANGUAGES", "ell+eng"))
     ocr_dpi: int = field(default_factory=lambda: _int("OCR_DPI", 300))
+
+    # AI spelling correction (feature flag, off by default). Needs an Ollama server.
+    ai_correction: bool = field(default_factory=lambda: _bool("AI_CORRECTION"))
+    ai_url: str = field(default_factory=lambda: os.getenv("AI_URL", "http://ollama:11434").rstrip("/"))
+    ai_model: str = field(default_factory=lambda: os.getenv("AI_MODEL", "gemma3:12b"))
+    ai_timeout: int = field(default_factory=lambda: _int("AI_TIMEOUT", 300))
+    # Optional file replacing the built-in instructions (app/prompts/correction_el.md).
+    ai_prompt_file: str = field(default_factory=lambda: os.getenv("AI_PROMPT_FILE", ""))
 
     upload_dir: Path = field(default_factory=lambda: Path(os.getenv("UPLOAD_DIR", "/tmp/voice-to-text")))
     max_upload_mb: int = field(default_factory=lambda: _int("MAX_UPLOAD_MB", 200))

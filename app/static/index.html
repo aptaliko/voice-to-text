@@ -25,6 +25,10 @@
           <summary>Φωνητικές εντολές</summary>
           <table><tbody id="commands"></tbody></table>
         </details>
+        <div id="ai-options" class="ai-options" hidden>
+          <label class="toggle"><input id="ai-toggle" type="checkbox" checked> Διόρθωση ορθογραφίας με AI</label>
+          <small id="ai-status" class="ai-status"></small>
+        </div>
         <label class="file-button">
           Ανέβασμα ηχητικού αρχείου
           <input id="audio-file" type="file" accept="audio/*,video/mp4,.m4a,.amr,.3gp" multiple hidden>
@@ -58,6 +62,7 @@
           <input id="filename" type="text" value="symvolaio">
         </label>
         <button id="download" class="primary" type="button">Λήψη Word (.docx)</button>
+        <button id="ai-correct" type="button" hidden>Διόρθωση με AI</button>
         <button id="copy" type="button">Αντιγραφή</button>
         <button id="clear" type="button" class="danger">Καθαρισμός</button>
       </div>

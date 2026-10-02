@@ -7,7 +7,7 @@ A small self-hosted web app for drafting Greek property-sale contracts:
 - **Edit & export**: fix the text in the browser and download it as a `.docx`.
 
 Everything runs on your own server. No audio or document leaves it, and no external API is called.
-The only outbound connection is a one-time download of the Whisper model (~1.6 GB) on the first transcription.
+The only outbound connections are one-time model downloads: Whisper (~1.6 GB) on the first transcription and, if you enable it, the AI correction model.
 
 ## Dictation tips
 
@@ -54,6 +54,62 @@ Dictated numbers are written the contract way: in words, then digits in parenthe
 Numbered items in scanned documents also keep their own line (`1)`, `2.`, `α)`).
 «κάθετος» and «τοις εκατό» only turn into symbols next to a number, so «κάθετος τοίχος» or «πενήντα τοις εκατό» stay as words.
 To add a command, add a line to `COMMANDS` in `app/dictation.py` (and a test case in `tests/test_dictation.py`).
+
+## AI spelling correction (optional)
+
+Greek has many words that sound the same but are spelled differently («η γνωστή» / «οι γνωστοί», «της» / «τις», «πωλείτε» / «πωλείται», «δήλωση» / «δηλώσει»).
+With this feature on, a local AI model (through [Ollama](https://ollama.com)) suggests corrections after each dictation.
+
+**Safeguard:** a suggested change is applied only if the new word *sounds exactly like* the old one. The model cannot rephrase, add or remove words, or change numbers, names or punctuation; such suggestions are discarded.
+Every applied change is listed under the job («AI: N διορθώσεις») with an «Αναίρεση» (undo) button.
+
+Two switches:
+- **Feature flag** `AI_CORRECTION=true|false` in `.env`. When `false` (default), the page shows nothing AI-related and the API refuses AI requests.
+- **Per-user switch** «Διόρθωση ορθογραφίας με AI» in the page (remembered by the browser), plus a «Διόρθωση με AI» button that corrects the text in the editor. Use it to test models on typed text.
+
+The instructions the model follows are in `app/prompts/correction_el.md`; edit them, or point `AI_PROMPT_FILE` to your own file.
+
+### On a Mac (recommended for testing)
+
+Run Ollama as the native app, which uses the Mac's GPU. Docker on a Mac cannot use it.
+
+```bash
+# 1. Install and open Ollama: https://ollama.com/download
+ollama pull gemma3:12b
+
+# 2. In .env
+AI_CORRECTION=true
+AI_URL=http://host.docker.internal:11434
+AI_MODEL=gemma3:12b
+
+# 3. Restart the app
+docker compose up -d --force-recreate
+```
+
+The page then shows «Μοντέλο: gemma3:12b» under the switch; if it shows an error instead, it says what is missing (server not running, model not pulled).
+
+Models worth comparing (change `AI_MODEL`, `ollama pull` it, restart). With 48 GB of RAM all of these fit:
+
+| Model | Size | Notes |
+|---|---|---|
+| `gemma3:12b` | ~8 GB | default; good multilingual model |
+| `gemma3:27b` | ~17 GB | best quality of the list, slower |
+| `qwen3:14b` | ~9 GB | strong; "thinking" model, so slower per reply |
+| Krikri (ILSP, Greek-specific) | ~5 GB | not in the Ollama library: search Hugging Face for a "Krikri GGUF" build and pull it with `ollama pull hf.co/<user>/<repo>:Q4_K_M` |
+
+A quick test: type «Η γνωστή πωλητές δηλώνουν ότι το ακίνητο πωλείτε ελεύθερο.» into the editor and press «Διόρθωση με AI».
+
+### On a Linux server
+
+```bash
+# .env: AI_CORRECTION=true, AI_URL=http://ollama:11434, AI_MODEL=gemma3:4b (or larger if RAM allows)
+docker compose --profile ai up -d
+docker compose exec ollama ollama pull gemma3:4b
+```
+
+On CPU only, expect 30 s to a few minutes per paragraph depending on the model; `AI_CPUS` / `AI_MEMORY` cap the Ollama container.
+The model needs RAM on top of Whisper's ~3 GB: roughly 3 GB for `gemma3:4b`, 8 GB for `gemma3:12b`. If the server cannot handle it, set `AI_CORRECTION=false`.
+If the AI server is down or too slow, the dictation still completes, uncorrected, with a warning.
 
 ## Deploying on the Hetzner server
 

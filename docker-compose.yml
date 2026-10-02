@@ -15,5 +15,19 @@ services:
     cpus: ${APP_CPUS:-4}
     mem_limit: ${APP_MEMORY:-6g}
 
+  # Local AI for the optional spelling correction (AI_CORRECTION=true).
+  # Started only with: docker compose --profile ai up -d
+  # On a Mac, run the native Ollama app instead (it uses the GPU) and set
+  # AI_URL=http://host.docker.internal:11434 in .env.
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["ai"]
+    restart: unless-stopped
+    volumes:
+      - ollama:/root/.ollama
+    cpus: ${AI_CPUS:-4}
+    mem_limit: ${AI_MEMORY:-12g}
+
 volumes:
   models:
+  ollama:

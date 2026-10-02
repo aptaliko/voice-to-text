@@ -128,3 +128,14 @@ textarea { min-height: 55vh; resize: vertical; line-height: 1.6; }
 .commands td { padding: 3px 0; border-bottom: 1px solid var(--border); }
 .commands td.symbol { text-align: right; font-weight: 600; font-size: 1rem; padding-left: 12px; }
 .commands small { color: var(--muted); }
+
+.ai-options { margin-bottom: 12px; display: flex; flex-direction: column; gap: 2px; }
+.toggle { flex-direction: row; align-items: center; gap: 8px; color: var(--text); font-size: 0.95rem; cursor: pointer; }
+.ai-status { color: var(--muted); }
+.ai-status.error { color: var(--danger); }
+.corrections { margin-top: 4px; }
+.corrections summary { cursor: pointer; color: var(--accent); }
+.corrections ul { margin: 6px 0; padding-left: 18px; }
+.corrections li { margin-bottom: 4px; }
+.corrections small { color: var(--muted); }
+.corrections button { font-size: 0.85rem; padding: 4px 10px; }
