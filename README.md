@@ -29,6 +29,7 @@ Say the word and it is replaced by the symbol. The full list is under «Φωνη
 | άνοιγμα / κλείσιμο παρένθεσης | `( )` | |
 | άνοιγμα / κλείσιμο εισαγωγικών | `« »` | |
 | σύμβολο παραγράφου | `§` | «σύμβολο παραγράφου 3» → `§ 3` |
+| κεφαλαία γράμματα … μικρά γράμματα | CAPITALS in between | «κεφαλαία γράμματα συμβόλαιο αγοραπωλησίας μικρά γράμματα» → `ΣΥΜΒΟΛΑΙΟ ΑΓΟΡΑΠΩΛΗΣΙΑΣ` (no accents, diaeresis kept; the full phrase is needed, since «κεφαλαία» alone is the financial term; capitals end at «μικρά γράμματα» or at the end of the recording) |
 | αρίθμηση ένα / δύο / 3 … | `1)` `2)` `3)` on a new line | «ότι άνω και κάτω τελεία αρίθμηση ένα …» → `ότι:` ↵ `1) …` |
 | άλφα / βήτα / γάμα … στίγμα παρένθεση (or αρίθμηση άλφα …) | `α)` `β)` `γ)` … `στ)` on a new line | |
 

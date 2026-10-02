@@ -63,3 +63,26 @@ def test_list_numbering(spoken, written):
 
 def test_article_before_parenthesis_is_not_a_list_item():
     assert apply_commands("η παρένθεση είναι σημείο στίξης") == "η παρένθεση είναι σημείο στίξης"
+
+
+@pytest.mark.parametrize(
+    "spoken, written",
+    [
+        (
+            "κεφαλαία γράμματα συμβόλαιο αγοραπωλησίας μικρά γράμματα νέα παράγραφος στην Αθήνα σήμερα",
+            "ΣΥΜΒΟΛΑΙΟ ΑΓΟΡΑΠΩΛΗΣΙΑΣ\n\nΣτην Αθήνα σήμερα",
+        ),
+        (
+            "Ο πωλητής, κεφαλαία γράμματα, Γεώργιος Παπαδόπουλος, μικρά γράμματα, κάτοικος Αθηνών",
+            "Ο πωλητής ΓΕΩΡΓΙΟΣ ΠΑΠΑΔΟΠΟΥΛΟΣ κάτοικος Αθηνών",
+        ),
+        # Capitals keep the diaeresis but drop the accent.
+        ("κεφαλαία γράμματα πρωτεΐνη και άρθρο πρώτο", "ΠΡΩΤΕΪΝΗ ΚΑΙ ΑΡΘΡΟ ΠΡΩΤΟ"),
+        # Numbers still get their case from the word before the command.
+        ("αντί κεφαλαία γράμματα 250.000 ευρώ μικρά γράμματα τελεία", "αντί ΔΙΑΚΟΣΙΩΝ ΠΕΝΗΝΤΑ ΧΙΛΙΑΔΩΝ ΕΥΡΩ (250.000 €)."),
+        # «κεφαλαία» alone is the financial term, not a command.
+        ("τα κεφαλαία της εταιρείας", "τα κεφαλαία της εταιρείας"),
+    ],
+)
+def test_capitals_mode(spoken, written):
+    assert apply_commands(spoken) == written

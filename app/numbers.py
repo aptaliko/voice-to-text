@@ -241,7 +241,8 @@ _JOINER_WORDS_BEFORE = re.compile(r"\b(?:κ[αά]θετο[ςσ]?|π[αά]ύλα|
 
 
 def _previous_word(text: str, position: int) -> str:
-    match = re.search(r"([^\W\d_]+|§)[.\s]*$", text[:position])
+    # \x00-\x08 are invisible markers left by other dictation commands.
+    match = re.search(r"([^\W\d_]+|§)[.\s\x00-\x08]*$", text[:position])
     return normalize(match.group(1)) if match else ""
 
 

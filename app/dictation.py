@@ -6,6 +6,7 @@ insensitively, and punctuation Whisper puts around them is dropped.
 """
 
 import re
+import unicodedata
 from dataclasses import dataclass
 
 from .numbers import digits_next_to_joiners, format_numbers, normalize, single_number
@@ -151,7 +152,34 @@ _COMPILED = [
 ]
 
 
+# «κεφαλαία γράμματα» … «μικρά γράμματα» writes the words in between in capitals.
+# The full phrase is required: «κεφαλαία» alone also means capital (funds).
+_CAPS_ON, _CAPS_OFF = "\x03", "\x04"
+_CAPS_COMMANDS = [
+    (re.compile(rf",?[ \t]*\b{_fuzzy(phrase)}\b[,.]?[ \t]*", re.IGNORECASE), f" {marker}")
+    for phrase, marker in (("κεφαλαία γράμματα", _CAPS_ON), ("μικρά γράμματα", _CAPS_OFF))
+]
+
+
+def _upper(text: str) -> str:
+    """Greek capitals: no accent (tonos), but the diaeresis stays (ΠΡΩΤΕΪΝΗ)."""
+    decomposed = unicodedata.normalize("NFD", text.upper()).replace("\u0301", "")
+    return unicodedata.normalize("NFC", decomposed)
+
+
+def _apply_caps(text: str) -> str:
+    out, caps = [], False
+    for part in re.split(f"([{_CAPS_ON}{_CAPS_OFF}])", text):
+        if part in (_CAPS_ON, _CAPS_OFF):
+            caps = part == _CAPS_ON
+        else:
+            out.append(_upper(part) if caps else part)
+    return "".join(out)
+
+
 def apply_commands(text: str) -> str:
+    for pattern, marker in _CAPS_COMMANDS:
+        text = pattern.sub(marker, text)
     text = _NUMBERED_ITEM.sub(_numbered_item, text)
     text = _LETTER_ITEM.sub(_letter_item, text)
     text = digits_next_to_joiners(text)
@@ -161,6 +189,7 @@ def apply_commands(text: str) -> str:
     text = format_numbers(text)
     text = re.sub(rf"{_CAPITALIZE}(\s*)(\w)", lambda m: m.group(1) + m.group(2).upper(), text)
     text = text.replace(_CAPITALIZE, "")
+    text = _apply_caps(text)
     # Each list item starts on its own line, without doubling an existing break.
     text = re.sub(rf"\s*{_SOFT_BREAK}", lambda m: m.group(0)[:-1] if "\n" in m.group(0) else "\n", text)
     text = re.sub(r"[ \t]+\n", "\n", text)
@@ -179,6 +208,8 @@ def command_list() -> list[dict]:
         seen.add(command.phrases)
         symbol = {"\n\n": "¶", "\n": "↵"}.get(command.symbol, command.symbol)
         rows.append({"say": command.phrases[0], "symbol": symbol, "note": command.note})
+    rows.append({"say": "κεφαλαία γράμματα", "symbol": "ΑΒΓ", "note": "μέχρι «μικρά γράμματα»"})
+    rows.append({"say": "μικρά γράμματα", "symbol": "αβγ", "note": "επιστροφή σε πεζά"})
     rows.append({"say": "αρίθμηση ένα", "symbol": "1)", "note": "αρίθμηση σε νέα γραμμή"})
     rows.append({"say": "άλφα παρένθεση", "symbol": "α)", "note": "ή «αρίθμηση άλφα» · βήτα, γάμα, … στίγμα (στ)"})
     rows.append({"say": "είκοσι εννέα", "symbol": "… (29)", "note": "ολογράφως και αριθμητικά: είκοσι εννέα (29)"})
