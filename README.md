@@ -42,9 +42,11 @@ Dictated numbers are written the contract way: in words, then digits in parenthe
 | διακοσίων πενήντα χιλιάδων ευρώ / `250.000 ευρώ` | `διακοσίων πενήντα χιλιάδων ευρώ (250.000 €)` |
 | πενήντα τοις εκατό / `50%` | `πενήντα τοις εκατό (50%)` |
 | του ποσού των `3500` ευρώ | `του ποσού των τριών χιλιάδων πεντακοσίων ευρώ (3.500 €)` |
+| εμβαδού ογδόντα πέντε τετραγωνικών μέτρων / εμβαδού `85 τ.μ.` | `εμβαδού ογδόντα πέντε τετραγωνικών μέτρων (85 τ.μ.)` |
+| έχει ογδόντα πέντε τετραγωνικά μέτρα / `85 m2` | `ογδόντα πέντε τετραγωνικά μέτρα (85 τ.μ.)` |
 | άνοιγμα παρένθεσης δύο κλείσιμο παρένθεσης | `(2)`, digits only |
 
-- Words keep exactly what was said, including gender and case. When Whisper writes digits, the words are generated in the neuter (genitive after «των»), so check the gender for things like «τρεις ημέρες».
+- Words keep exactly what was said, including gender and case. When Whisper writes digits, the words are generated in the neuter, and in the genitive after «των», «εμβαδού», «επιφανείας», «εκτάσεως», «αντί», «ποσού», «τιμήματος», «αξίας», «ύψους», so check the gender for things like «τρεις ημέρες».
 - A lone «ένα» / «μία» is left alone because it is usually the article.
 - Stays in digits: references after «άρθρο», «παρ.», «αριθμός», «νόμου», «ΦΕΚ», «ΑΦΜ», «ΚΑΕΚ», «ΤΚ», «§»; street numbers after «οδός/λεωφόρος/πλατεία …»; numbers joined with `/`, `-`, `:` or decimals; numbers of 5+ digits without dots (IDs, postcodes); numbers already in parentheses.
 - List numbering needs «αρίθμηση», so `2)` (a list item) is never confused with `δύο (2)` (an amount).

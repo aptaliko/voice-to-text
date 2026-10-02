@@ -226,6 +226,16 @@ _REFERENCE_WORDS = {
 _WORD = re.compile(r"[^\W\d_]+|§")
 _EURO = re.compile(r"[ \t]+ευρώ\b|[ \t]*€", re.IGNORECASE)
 _PERCENT = re.compile(r"[ \t]+τ[οι]{1,2}ς[ \t]+εκατ[οό]\b|[ \t]*%", re.IGNORECASE)
+# Square metres, spoken («τετραγωνικά μέτρα», «τετραγωνικών μέτρων», «τετραγωνικά») or abbreviated («τ.μ.», «m²»).
+_SQM_WORDS = re.compile(
+    r"[ \t]+τετραγωνικ(?:[αά]|[οό]|[ωώ]ν|[οό]ύ|ου)(?:[ \t]+μ[εέ]τρ(?:α|ο|ων|ου))?(?!\w)", re.IGNORECASE
+)
+_SQM_SHORT = re.compile(r"[ \t]*(?:τ\.?[ \t]?μ\.?(?!\w)|m2(?!\w)|m²)", re.IGNORECASE)
+# After these words a generated number is in the genitive: «εμβαδού ογδόντα πέντε τετραγωνικών μέτρων».
+_GENITIVE_BEFORE = {
+    normalize(w)
+    for w in ("των", "εμβαδού", "επιφανείας", "εκτάσεως", "έκτασης", "αντί", "ποσού", "τιμήματος", "αξίας", "ύψους")
+}
 _JOINER_WORDS = re.compile(r"^[ \t]*(?:κ[αά]θετο[ςσ]?|π[αά]ύλα|π[αά]υλα)\b", re.IGNORECASE)
 _JOINER_WORDS_BEFORE = re.compile(r"\b(?:κ[αά]θετο[ςσ]?|π[αά]ύλα|π[αά]υλα)[ \t]*$", re.IGNORECASE)
 
@@ -290,14 +300,26 @@ def digits_next_to_joiners(text: str) -> str:
     return "".join(out) + text[last:]
 
 
-def _with_unit(words: str, digits: str, after: str) -> tuple[str, int]:
+def _unit(after: str) -> re.Match | None:
+    return _EURO.match(after) or _PERCENT.match(after) or _SQM_WORDS.match(after) or _SQM_SHORT.match(after)
+
+
+def _with_unit(words: str, value: int, after: str, genitive: bool = False, grouped: bool = False) -> tuple[str, int]:
     """Words plus digits in parentheses, moving a following unit inside them."""
     if match := _EURO.match(after):
-        return f"{words} ευρώ ({digits} €)", match.end()
+        return f"{words} ευρώ ({format_digits(value, True)} €)", match.end()
     if match := _PERCENT.match(after):
         unit = match.group().strip()
-        return f"{words} {'τοις εκατό' if unit == '%' else unit} ({digits}%)", match.end()
-    return f"{words} ({digits})", 0
+        return f"{words} {'τοις εκατό' if unit == '%' else unit} ({format_digits(value, grouped)}%)", match.end()
+    if match := _SQM_WORDS.match(after) or _SQM_SHORT.match(after):
+        unit = match.group().strip()
+        if _SQM_SHORT.fullmatch(match.group()):
+            if value == 1:
+                unit = "τετραγωνικού μέτρου" if genitive else "τετραγωνικό μέτρο"
+            else:
+                unit = "τετραγωνικών μέτρων" if genitive else "τετραγωνικά μέτρα"
+        return f"{words} {unit} ({format_digits(value, value >= 1000)} τ.μ.)", match.end()
+    return f"{words} ({format_digits(value, grouped)})", 0
 
 
 def _format_word_numbers(text: str) -> str:
@@ -310,11 +332,10 @@ def _format_word_numbers(text: str) -> str:
             replacement, consumed = format_digits(value, value >= 10000), 0  # explicit «(2)»
         elif _is_reference(text, start):
             replacement, consumed = str(value), 0  # «άρθρο πέντε» -> «άρθρο 5»
-        elif re.match(r"[ \t]*(?:ευρώ[ \t]*|τ[οι]{1,2}ς[ \t]+εκατ[οό][ \t]*)?\(", after, re.IGNORECASE):
+        elif re.match(r"[ \t]*\(", after[unit.end():] if (unit := _unit(after)) else after):
             continue  # already followed by its digits
         else:
-            grouped = value >= 10000 or bool(_EURO.match(after))
-            replacement, consumed = _with_unit(text[start:end], format_digits(value, grouped), after)
+            replacement, consumed = _with_unit(text[start:end], value, after, grouped=value >= 10000)
         out += [text[last:start], replacement]
         last = end + consumed
     return "".join(out) + text[last:]
@@ -332,9 +353,9 @@ def _format_digit_numbers(text: str) -> str:
         previous = _previous_word(text, start)
         value = int(match.group().replace(".", ""))
         after = text[end:]
-        words = to_words(value, genitive=previous == "των")
-        grouped = "." in match.group() or bool(_EURO.match(after))
-        replacement, consumed = _with_unit(words, format_digits(value, grouped), after)
+        genitive = previous in _GENITIVE_BEFORE
+        words = to_words(value, genitive=genitive)
+        replacement, consumed = _with_unit(words, value, after, genitive, grouped="." in match.group())
         out += [text[last:start], replacement]
         last = end + consumed
     return "".join(out) + text[last:]
