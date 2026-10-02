@@ -14,7 +14,7 @@ def test_spoken_commands():
 
 
 def test_spoken_commands_without_accents():
-    assert apply_commands("ένα νεα παραγραφος δύο") == "ένα\n\nΔύο"
+    assert apply_commands("πρώτο νεα παραγραφος δεύτερο") == "πρώτο\n\nΔεύτερο"
 
 
 def test_reflow_joins_lines_and_hyphenation():

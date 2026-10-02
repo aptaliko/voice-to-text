@@ -8,6 +8,8 @@ insensitively, and punctuation Whisper puts around them is dropped.
 import re
 from dataclasses import dataclass
 
+from .numbers import digits_next_to_joiners, format_numbers, normalize, single_number
+
 # How a symbol sits between its neighbours.
 LEFT = "left"  # "λέξη, " - glued to the previous word
 RIGHT = "right"  # " (λέξη" - glued to the next word
@@ -91,12 +93,9 @@ def _replacement(command: Command) -> str:
     }[command.spacing]
 
 
-# List numbering: «ένα παρένθεση» -> "1)", «άλφα παρένθεση» -> "α)".
-_NUMBER_WORDS = {
-    "ένα": "1", "δύο": "2", "τρία": "3", "τέσσερα": "4", "πέντε": "5", "έξι": "6",
-    "επτά": "7", "εφτά": "7", "οκτώ": "8", "οχτώ": "8", "εννέα": "9", "εννιά": "9",
-    "δέκα": "10", "έντεκα": "11", "δώδεκα": "12",
-}
+# List numbering. Numbers need «αρίθμηση» («αρίθμηση δύο» -> "2)") so they are
+# never confused with amounts, which become «δύο (2)». Letters also work with
+# «παρένθεση»: «άλφα παρένθεση» -> "α)".
 # Greek list letters, as Whisper spells their names. «στίγμα» is the
 # traditional sixth item (στ).
 _LETTER_NAMES = {
@@ -105,29 +104,45 @@ _LETTER_NAMES = {
     "λάμδα": "λ", "λάμβδα": "λ", "μι": "μ", "νι": "ν", "ξι": "ξ", "όμικρον": "ο",
     "πι": "π", "ρο": "ρ", "σίγμα": "σ", "ταυ": "τ",
 }
+_LETTERS = {normalize(name): letter for name, letter in _LETTER_NAMES.items()}
 # Single letters as Whisper may write them. «η» and «ο» are left out because
 # they are also articles («η παρένθεση»).
 _SINGLE_LETTERS = "αβγδεζθικλμνξπρστυφχψω"
-_LOOKUP = {
-    _fuzzy(word).lower(): value for word, value in {**_NUMBER_WORDS, **_LETTER_NAMES}.items()
-}
-_LIST_MARKER = re.compile(
-    rf"[,.]?[ \t]*\b(?P<marker>\d{{1,3}}|στ|[{_SINGLE_LETTERS}]|"
-    + "|".join(rf"{_fuzzy(w)}" for w in sorted({**_NUMBER_WORDS, **_LETTER_NAMES}, key=len, reverse=True))
-    + rf")[ \t]+{_fuzzy('παρένθεση')}\b[,.]?[ \t]*",
-    re.IGNORECASE,
+_LETTER = rf"(?:{'|'.join(_fuzzy(w) for w in sorted(_LETTER_NAMES, key=len, reverse=True))}|στ|[{_SINGLE_LETTERS}])"
+_PARENTHESIS = _fuzzy("παρένθεση")
+_LETTER_ITEM = re.compile(
+    rf"[,.]?[ \t]*\b(?P<marker>{_LETTER})[ \t]+{_PARENTHESIS}\b[,.]?[ \t]*", re.IGNORECASE
+)
+_NUMBERED_ITEM = re.compile(
+    rf"[,.]?[ \t]*\b{_fuzzy('αρίθμηση')}[ \t]+(?P<words>[^\W_]+(?:[ \t]+[^\W_]+){{0,3}})", re.IGNORECASE
 )
 _SOFT_BREAK = "\x01"  # a line break unless one is already there
 
 
-def _list_marker(match: re.Match) -> str:
+def _letter_item(match: re.Match) -> str:
     spoken = match.group("marker")
-    marker = spoken
-    for pattern, value in _LOOKUP.items():
-        if re.fullmatch(pattern, spoken, re.IGNORECASE):
-            marker = value
-            break
-    return f"{_SOFT_BREAK}{marker}) "
+    return f"{_SOFT_BREAK}{_LETTERS.get(normalize(spoken), spoken)}) "
+
+
+def _numbered_item(match: re.Match) -> str:
+    words = match.group("words").split()
+    # Use the longest leading run of words that is one number or one letter.
+    for count in range(len(words), 0, -1):
+        spoken = " ".join(words[:count])
+        if spoken.isdigit():
+            marker = spoken
+        elif normalize(spoken) in _LETTERS or (count == 1 and len(spoken) <= 2 and spoken.isalpha()):
+            marker = _LETTERS.get(normalize(spoken), spoken)
+        else:
+            value = single_number(words[:count])
+            if value is None:
+                continue
+            marker = str(value)
+        rest = words[count:]
+        if rest and normalize(rest[0]).rstrip(".,") == normalize("παρένθεση"):
+            rest = rest[1:]
+        return f"{_SOFT_BREAK}{marker}) " + " ".join(rest)
+    return match.group()
 
 
 _CAPITALIZE = "\x00"  # marks where the next letter must become upper case
@@ -137,10 +152,13 @@ _COMPILED = [
 
 
 def apply_commands(text: str) -> str:
-    text = _LIST_MARKER.sub(_list_marker, text)
+    text = _NUMBERED_ITEM.sub(_numbered_item, text)
+    text = _LETTER_ITEM.sub(_letter_item, text)
+    text = digits_next_to_joiners(text)
     for pattern, replacement in _COMPILED:
         # A function, so backslashes in symbols are never treated as escapes.
         text = pattern.sub(lambda _m, r=replacement: r, text)
+    text = format_numbers(text)
     text = re.sub(rf"{_CAPITALIZE}(\s*)(\w)", lambda m: m.group(1) + m.group(2).upper(), text)
     text = text.replace(_CAPITALIZE, "")
     # Each list item starts on its own line, without doubling an existing break.
@@ -161,6 +179,8 @@ def command_list() -> list[dict]:
         seen.add(command.phrases)
         symbol = {"\n\n": "¶", "\n": "↵"}.get(command.symbol, command.symbol)
         rows.append({"say": command.phrases[0], "symbol": symbol, "note": command.note})
-    rows.append({"say": "ένα παρένθεση", "symbol": "1)", "note": "αρίθμηση σε νέα γραμμή"})
-    rows.append({"say": "άλφα παρένθεση", "symbol": "α)", "note": "βήτα, γάμα, … στίγμα (στ)"})
+    rows.append({"say": "αρίθμηση ένα", "symbol": "1)", "note": "αρίθμηση σε νέα γραμμή"})
+    rows.append({"say": "άλφα παρένθεση", "symbol": "α)", "note": "ή «αρίθμηση άλφα» · βήτα, γάμα, … στίγμα (στ)"})
+    rows.append({"say": "είκοσι εννέα", "symbol": "… (29)", "note": "ολογράφως και αριθμητικά: είκοσι εννέα (29)"})
+    rows.append({"say": "άνοιγμα παρένθεσης δύο κλείσιμο παρένθεσης", "symbol": "(2)", "note": "μόνο ο αριθμός"})
     return rows
