@@ -30,3 +30,19 @@ def test_greek_ocr_on_image(tmp_path):
     image.save(path)
     text = extract_text(path, lambda p: None)
     assert "Συμβόλαιο" in text and "ακινήτου" in text
+
+
+@pytest.mark.skipif(shutil.which("tesseract") is None, reason="tesseract not installed")
+def test_numbered_list_survives_ocr(tmp_path):
+    try:
+        font = ImageFont.truetype(FONT, 40)
+    except OSError:
+        pytest.skip("DejaVu font not available")
+    lines = ["Ο πωλητής δηλώνει ότι:", "1) το ακίνητο είναι ελεύθερο,", "2) δεν υπάρχουν βάρη,", "α) πρώτος όρος", "β) δεύτερος όρος"]
+    image = Image.new("RGB", (1400, 80 + 70 * len(lines)), "white")
+    draw = ImageDraw.Draw(image)
+    for index, line in enumerate(lines):
+        draw.text((40, 40 + 70 * index), line, fill="black", font=font)
+    path = tmp_path / "list.png"
+    image.save(path)
+    assert [line for line in extract_text(path, lambda p: None).splitlines() if line] == lines

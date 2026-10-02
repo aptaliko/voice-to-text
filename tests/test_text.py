@@ -24,3 +24,10 @@ def test_reflow_joins_lines_and_hyphenation():
 
 def test_fix_homoglyphs_only_in_greek_words():
     assert fix_homoglyphs("σήµερα ΣYMBOΛAIO Athens 50 m2") == "σήμερα ΣΥΜΒΟΛΑΙΟ Athens 50 m2"
+
+
+def test_reflow_keeps_numbered_items_on_their_own_line():
+    raw = "Δηλώνει ότι:\n1) το ακίνητο είναι\nελεύθερο,\n2. χωρίς βάρη\nα) πρώτο\nτο ποσό των\n1.000 ευρώ και ο\nκ. Παπαδόπουλος"
+    assert reflow(raw) == (
+        "Δηλώνει ότι:\n1) το ακίνητο είναι ελεύθερο,\n2. χωρίς βάρη\nα) πρώτο το ποσό των 1.000 ευρώ και ο κ. Παπαδόπουλος"
+    )

@@ -91,6 +91,45 @@ def _replacement(command: Command) -> str:
     }[command.spacing]
 
 
+# List numbering: «ένα παρένθεση» -> "1)", «άλφα παρένθεση» -> "α)".
+_NUMBER_WORDS = {
+    "ένα": "1", "δύο": "2", "τρία": "3", "τέσσερα": "4", "πέντε": "5", "έξι": "6",
+    "επτά": "7", "εφτά": "7", "οκτώ": "8", "οχτώ": "8", "εννέα": "9", "εννιά": "9",
+    "δέκα": "10", "έντεκα": "11", "δώδεκα": "12",
+}
+# Greek list letters, as Whisper spells their names. «στίγμα» is the
+# traditional sixth item (στ).
+_LETTER_NAMES = {
+    "άλφα": "α", "βήτα": "β", "γάμα": "γ", "γάμμα": "γ", "δέλτα": "δ", "έψιλον": "ε",
+    "στίγμα": "στ", "ζήτα": "ζ", "ήτα": "η", "θήτα": "θ", "γιώτα": "ι", "κάπα": "κ",
+    "λάμδα": "λ", "λάμβδα": "λ", "μι": "μ", "νι": "ν", "ξι": "ξ", "όμικρον": "ο",
+    "πι": "π", "ρο": "ρ", "σίγμα": "σ", "ταυ": "τ",
+}
+# Single letters as Whisper may write them. «η» and «ο» are left out because
+# they are also articles («η παρένθεση»).
+_SINGLE_LETTERS = "αβγδεζθικλμνξπρστυφχψω"
+_LOOKUP = {
+    _fuzzy(word).lower(): value for word, value in {**_NUMBER_WORDS, **_LETTER_NAMES}.items()
+}
+_LIST_MARKER = re.compile(
+    rf"[,.]?[ \t]*\b(?P<marker>\d{{1,3}}|στ|[{_SINGLE_LETTERS}]|"
+    + "|".join(rf"{_fuzzy(w)}" for w in sorted({**_NUMBER_WORDS, **_LETTER_NAMES}, key=len, reverse=True))
+    + rf")[ \t]+{_fuzzy('παρένθεση')}\b[,.]?[ \t]*",
+    re.IGNORECASE,
+)
+_SOFT_BREAK = "\x01"  # a line break unless one is already there
+
+
+def _list_marker(match: re.Match) -> str:
+    spoken = match.group("marker")
+    marker = spoken
+    for pattern, value in _LOOKUP.items():
+        if re.fullmatch(pattern, spoken, re.IGNORECASE):
+            marker = value
+            break
+    return f"{_SOFT_BREAK}{marker}) "
+
+
 _CAPITALIZE = "\x00"  # marks where the next letter must become upper case
 _COMPILED = [
     (_compile(c), _replacement(c) + (_CAPITALIZE if c.capitalize_next else "")) for c in COMMANDS
@@ -98,11 +137,14 @@ _COMPILED = [
 
 
 def apply_commands(text: str) -> str:
+    text = _LIST_MARKER.sub(_list_marker, text)
     for pattern, replacement in _COMPILED:
         # A function, so backslashes in symbols are never treated as escapes.
         text = pattern.sub(lambda _m, r=replacement: r, text)
     text = re.sub(rf"{_CAPITALIZE}(\s*)(\w)", lambda m: m.group(1) + m.group(2).upper(), text)
     text = text.replace(_CAPITALIZE, "")
+    # Each list item starts on its own line, without doubling an existing break.
+    text = re.sub(rf"\s*{_SOFT_BREAK}", lambda m: m.group(0)[:-1] if "\n" in m.group(0) else "\n", text)
     text = re.sub(r"[ \t]+\n", "\n", text)
     text = re.sub(r"\n[ \t]+", "\n", text)
     text = re.sub(r"([(«]) +| +([)»,.·:;!%])", lambda m: m.group(1) or m.group(2), text)
@@ -119,4 +161,6 @@ def command_list() -> list[dict]:
         seen.add(command.phrases)
         symbol = {"\n\n": "¶", "\n": "↵"}.get(command.symbol, command.symbol)
         rows.append({"say": command.phrases[0], "symbol": symbol, "note": command.note})
+    rows.append({"say": "ένα παρένθεση", "symbol": "1)", "note": "αρίθμηση σε νέα γραμμή"})
+    rows.append({"say": "άλφα παρένθεση", "symbol": "α)", "note": "βήτα, γάμα, … στίγμα (στ)"})
     return rows

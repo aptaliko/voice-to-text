@@ -29,14 +29,20 @@ def fix_homoglyphs(text: str) -> str:
     )
 
 
+# A line that starts a numbered item keeps its line break: "1) ", "2. ", "α) ", "στ) ".
+# Letters need ")" because "κ. Παπαδόπουλος" (κύριος) also starts with a letter and a dot.
+_LIST_ITEM = re.compile(r"[ \t]*\n[ \t]*(?=(?:\d{1,3}[.)]|[α-ωά-ώΑ-Ω]{1,2}\)|[a-zA-Z]\))\s)")
+_KEEP_BREAK = "\x02"
+
+
 def reflow(text: str) -> str:
     """Undo the hard line breaks of a scanned page while keeping paragraphs."""
     text = text.replace("\r", "")
     # Words split with a hyphen across lines: "συμ-\nβόλαιο" -> "συμβόλαιο".
     text = re.sub(r"(\w)-\n(\w)", r"\1\2", text)
     paragraphs = re.split(r"\n\s*\n", text)
-    cleaned = [re.sub(r"\s*\n\s*", " ", p).strip() for p in paragraphs]
-    return "\n\n".join(re.sub(r"[ \t]{2,}", " ", p) for p in cleaned if p)
+    cleaned = [re.sub(r"\s*\n\s*", " ", _LIST_ITEM.sub(_KEEP_BREAK, p)).strip() for p in paragraphs]
+    return "\n\n".join(re.sub(r"[ \t]{2,}", " ", p).replace(_KEEP_BREAK, "\n") for p in cleaned if p)
 
 
 def _ocr_image(image: Image.Image) -> str:

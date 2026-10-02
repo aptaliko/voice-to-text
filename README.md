@@ -29,7 +29,10 @@ Say the word and it is replaced by the symbol. The full list is under «Φωνη
 | άνοιγμα / κλείσιμο παρένθεσης | `( )` | |
 | άνοιγμα / κλείσιμο εισαγωγικών | `« »` | |
 | σύμβολο παραγράφου | `§` | «σύμβολο παραγράφου 3» → `§ 3` |
+| ένα / δύο / 3 … παρένθεση | `1)` `2)` `3)` on a new line | «ότι άνω και κάτω τελεία ένα παρένθεση …» → `ότι:` ↵ `1) …` |
+| άλφα / βήτα / γάμα … στίγμα … παρένθεση | `α)` `β)` `γ)` … `στ)` on a new line | |
 
+Numbered items in scanned documents also keep their own line (`1)`, `2.`, `α)`).
 «κάθετος» and «τοις εκατό» only turn into symbols next to a number, so «κάθετος τοίχος» or «πενήντα τοις εκατό» stay as words.
 To add a command, add a line to `COMMANDS` in `app/dictation.py` (and a test case in `tests/test_dictation.py`).
 
