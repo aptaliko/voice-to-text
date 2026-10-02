@@ -55,6 +55,12 @@ WHISPER_MODEL=small MODEL_DIR=./models uvicorn app.main:app --reload
 
 When `APP_USERNAME` is unset, authentication is disabled (local development only).
 
+## Troubleshooting
+
+**«Ο browser μπλοκάρει το μικρόφωνο…»**: browsers allow the microphone only on `https://` pages or on `http://localhost`.
+The Docker log says `Uvicorn running on http://0.0.0.0:8000`, but that address is *not* treated as secure, and neither is a LAN IP such as `http://192.168.1.10:8000`.
+Locally, open **http://localhost:8000**. To test from a phone or another computer, deploy behind HTTPS (see above).
+
 ## Privacy notes
 
 - Uploaded files are deleted as soon as they are processed.

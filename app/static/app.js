@@ -169,8 +169,18 @@ function stopTimer() {
 }
 
 async function startRecording() {
+  if (!window.isSecureContext) {
+    // Browsers only expose the microphone on https:// or localhost.
+    const local = `http://localhost:${location.port || 80}`;
+    setStatus(
+      `Ο browser μπλοκάρει το μικρόφωνο στη διεύθυνση ${location.origin}. ` +
+      `Ανοίξτε τη σελίδα από ${local} (στον ίδιο υπολογιστή) ή μέσω https://.`,
+      true,
+    );
+    return;
+  }
   if (!navigator.mediaDevices?.getUserMedia) {
-    setStatus("Ο browser δεν επιτρέπει εγγραφή. Η σελίδα πρέπει να ανοίγει με https://", true);
+    setStatus("Αυτός ο browser δεν υποστηρίζει εγγραφή. Δοκιμάστε Chrome, Edge ή Firefox, ή ανεβάστε ηχητικό αρχείο.", true);
     return;
   }
   let stream;
