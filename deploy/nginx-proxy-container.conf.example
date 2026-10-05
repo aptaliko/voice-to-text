@@ -1,0 +1,56 @@
+# Server blocks to add to a reverse-proxy nginx running in Docker (the
+# website's nginx container), for the subdomain of the dictation app.
+# Replace symvolaia.example.gr with the real subdomain.
+#
+# The app is looked up at request time (resolver + variable), so nginx still
+# starts, and the website keeps working, when the app container is down.
+
+# --- Step A: HTTP only, needed to obtain the certificate ---
+server {
+    listen 80;
+    listen [::]:80;
+    server_name symvolaia.example.gr;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+# --- Step B: add after the certificate exists ---
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name symvolaia.example.gr;
+
+    ssl_certificate /etc/letsencrypt/live/symvolaia.example.gr/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/symvolaia.example.gr/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_session_cache shared:SSL_VTT:10m;
+    server_tokens off;
+
+    # Do NOT copy the website's "Permissions-Policy ... microphone=()" header:
+    # it would block the microphone that dictation needs.
+    add_header X-Frame-Options SAMEORIGIN;
+    add_header X-Content-Type-Options nosniff;
+    add_header Referrer-Policy same-origin;
+
+    client_max_body_size 200m;   # long dictations, multi-page PDFs
+
+    resolver 127.0.0.11 valid=30s;   # Docker's internal DNS
+    set $voice_to_text http://voice-to-text:8000;
+
+    location / {
+        proxy_pass $voice_to_text;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300s;
+        proxy_request_buffering off;
+    }
+}

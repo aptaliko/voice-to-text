@@ -102,6 +102,12 @@ The first dictation afterwards downloads the Whisper model (~1.6 GB) once.
 
 ## 6. Domain and HTTPS
 
+> **If the server's ports 80/443 belong to a Docker nginx container** (another site's reverse proxy), do not install nginx on the host.
+> Instead: set `COMPOSE_FILE` and `PROXY_NETWORK` in `.env` (see `.env.example`) so the app joins that container's network,
+> and add the server blocks from `deploy/nginx-proxy-container.conf.example` to that nginx's config.
+> Get the certificate with that setup's own certbot container (webroot `/var/www/certbot`).
+> The steps below are for a host nginx.
+
 Browsers only allow the microphone on `https://` pages, so the app needs a hostname and a certificate.
 
 1. **DNS**: at the client's domain provider, add an **A record**: `symvolaia` → `SERVER_IP`. Check it with `dig +short symvolaia.example.gr` (may take a few minutes to an hour).
