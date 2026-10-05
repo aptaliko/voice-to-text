@@ -154,7 +154,7 @@ On the server, as the deploy user (`sudo -iu deploy`), create the key GitHub Act
 ssh-keygen -t ed25519 -N "" -C "github actions deploy" -f ~/.ssh/github_actions
 echo "command=\"/opt/voice-to-text/deploy/deploy.sh\",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty $(cat ~/.ssh/github_actions.pub)" >> ~/.ssh/authorized_keys
 chmod 600 ~/.ssh/authorized_keys
-cat ~/.ssh/github_actions        # the PRIVATE key, for the next step
+base64 -w0 ~/.ssh/github_actions; echo   # the PRIVATE key as ONE line, for the next step
 ```
 
 From your own computer, get the server's host key (so GitHub can verify it is talking to your server):
@@ -169,7 +169,7 @@ On GitHub: **repository → Settings → Environments → New environment** name
 |---|---|
 | `DEPLOY_HOST` | `SERVER_IP` |
 | `DEPLOY_USER` | `deploy` |
-| `DEPLOY_SSH_KEY` | the whole private key printed above, including the `-----BEGIN/END …-----` lines |
+| `DEPLOY_SSH_KEY` | the one-line private key printed above (the multi-line `-----BEGIN …` form also works) |
 | `DEPLOY_KNOWN_HOSTS` | the line printed by `ssh-keyscan` |
 | `DEPLOY_PORT` | only if SSH is not on port 22 |
 

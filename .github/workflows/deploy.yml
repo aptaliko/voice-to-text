@@ -45,8 +45,18 @@ jobs:
             exit 0
           fi
           install -m 700 -d ~/.ssh
-          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          # The key may be pasted as-is or as one base64 line (easier to copy
+          # from a terminal). Windows line endings and trailing spaces are removed.
+          if printf '%s' "$DEPLOY_SSH_KEY" | grep -q "BEGIN"; then
+            printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' | sed 's/[[:space:]]*$//' > ~/.ssh/deploy_key
+          else
+            printf '%s' "$DEPLOY_SSH_KEY" | tr -d '\r\n ' | base64 -d > ~/.ssh/deploy_key
+          fi
           chmod 600 ~/.ssh/deploy_key
+          if ! ssh-keygen -y -f ~/.ssh/deploy_key > /dev/null 2>&1; then
+            echo "::error::DEPLOY_SSH_KEY is not a valid private key; it was probably damaged when copied. See DEPLOY.md step 7."
+            exit 1
+          fi
           printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
           # The server only lets this key run deploy/deploy.sh (forced command),
           # so no command is sent here.
