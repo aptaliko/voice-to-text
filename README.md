@@ -112,35 +112,9 @@ On CPU only, expect 30 s to a few minutes per paragraph depending on the model; 
 The model needs RAM on top of Whisper's ~3 GB: roughly 3 GB for `gemma3:4b`, 8 GB for `gemma3:12b`. If the server cannot handle it, set `AI_CORRECTION=false`.
 If the AI server is down or too slow, the dictation still completes, uncorrected, with a warning.
 
-## Deploying on the Hetzner server
+## Deploying
 
-Requirements: Docker with the compose plugin, plus nginx and certbot on the host. HTTPS is mandatory, because browsers only allow the microphone on `https://` pages.
-
-```bash
-git clone <this repo> /opt/voice-to-text && cd /opt/voice-to-text
-cp .env.example .env          # set APP_USERNAME / APP_PASSWORD, adjust APP_CPUS / APP_MEMORY
-docker compose up -d --build
-
-# nginx: copy and edit the example, then get a certificate
-sudo cp deploy/nginx.conf.example /etc/nginx/sites-available/symvolaia.example.gr
-sudo ln -s /etc/nginx/sites-available/symvolaia.example.gr /etc/nginx/sites-enabled/
-sudo certbot --nginx -d symvolaia.example.gr
-sudo nginx -t && sudo systemctl reload nginx
-```
-
-The container listens only on `127.0.0.1:8000`, so it is reachable only through nginx. The Whisper model is cached in the `models` Docker volume.
-
-### Sizing
-
-Transcription runs on the CPU, one job at a time. `APP_CPUS` and `APP_MEMORY` cap the container so the website on the same server stays responsive.
-
-| Model (`WHISPER_MODEL`) | RAM | Greek quality | Speed on CPU |
-|---|---|---|---|
-| `large-v3-turbo` (default) | ~3 GB | very good | fastest of the large models |
-| `large-v3` | ~4 GB | best | ~3x slower |
-| `medium` / `small` | 1–2 GB | noticeably worse | fast |
-
-Measure on the real server: time a 5-minute dictation and pick the model accordingly.
+See **[DEPLOY.md](DEPLOY.md)**: server setup (Docker, nginx, HTTPS) and automatic deploys from GitHub on every push to `main`.
 
 ## Development
 
