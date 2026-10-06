@@ -114,6 +114,8 @@ If the AI server is down or too slow, the dictation still completes, uncorrected
 
 ## Deploying
 
+Hardware and software needed, with and without AI correction: **[SYSTEM-REQUIREMENTS.md](SYSTEM-REQUIREMENTS.md)**.
+
 See **[DEPLOY.md](DEPLOY.md)**: server setup (Docker, nginx, HTTPS) and automatic deploys from GitHub on every push to `main`.
 
 ## Development

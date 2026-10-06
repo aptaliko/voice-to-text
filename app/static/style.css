@@ -29,6 +29,8 @@
 }
 
 * { box-sizing: border-box; }
+/* The hidden attribute must win over display rules like "button { display: inline-block }". */
+[hidden] { display: none !important; }
 
 body {
   margin: 0;
@@ -157,7 +159,6 @@ textarea { min-height: 55vh; resize: vertical; line-height: 1.6; }
   padding: 10px 0;
   border-top: 1px solid var(--border);
 }
-.guide-row[hidden], .guide-section[hidden] { display: none; }
 .guide-written { font-size: 1.4rem; font-weight: 700; white-space: pre-wrap; word-break: break-word; }
 .guide-details { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .guide-example { font-size: 0.9rem; }
