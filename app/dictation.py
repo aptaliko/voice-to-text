@@ -35,7 +35,7 @@ class Command:
 COMMANDS: tuple[Command, ...] = (
     Command(("νέα παράγραφος", "νέα παράγραφο"), "\n\n", BREAK, True),
     Command(("νέα γραμμή",), "\n", BREAK, True),
-    Command(("άνω και κάτω τελεία",), ":", LEFT),
+    Command(("άνω και κάτω τελεία", "άνω κάτω τελεία", "άνω-κάτω τελεία"), ":", LEFT),
     Command(("άνω τελεία",), "·", LEFT),
     Command(("άνοιγμα παρένθεσης", "ανοίγει παρένθεση", "παρένθεση ανοίγει"), "(", RIGHT),
     Command(("κλείσιμο παρένθεσης", "κλείνει παρένθεση", "παρένθεση κλείνει"), ")", LEFT),
@@ -114,8 +114,11 @@ _PARENTHESIS = _fuzzy("παρένθεση")
 _LETTER_ITEM = re.compile(
     rf"[,.]?[ \t]*\b(?P<marker>{_LETTER})[ \t]+{_PARENTHESIS}\b[,.]?[ \t]*", re.IGNORECASE
 )
+_NUMBERING = r"αρ[ιί]θμ[ηι]σ[ηι]"
 _NUMBERED_ITEM = re.compile(
-    rf"[,.]?[ \t]*\b{_fuzzy('αρίθμηση')}[ \t]+(?P<words>[^\W_]+(?:[ \t]+[^\W_]+){{0,3}})", re.IGNORECASE
+    # Whisper sometimes writes «αρίθμιση»; _NUMBERING accepts either spelling.
+    # The look-ahead stops a number from swallowing the next «αρίθμηση».
+    rf"[,.]?[ \t]*\b{_NUMBERING}[ \t]+(?P<words>[^\W_]+(?:[ \t]+(?!{_NUMBERING})[^\W_]+){{0,3}})", re.IGNORECASE
 )
 _SOFT_BREAK = "\x01"  # a line break unless one is already there
 
