@@ -1,6 +1,6 @@
 import pytest
 
-from app.dictation import apply_commands, command_list
+from app.dictation import apply_commands
 
 
 @pytest.mark.parametrize(
@@ -32,12 +32,6 @@ def test_spoken_symbols(spoken, written):
 )
 def test_everyday_words_are_left_alone(text):
     assert apply_commands(text) == text
-
-
-def test_command_list_has_one_row_per_phrase():
-    says = [row["say"] for row in command_list()]
-    assert says.count("παύλα") == 1
-    assert {"say": "κάθετος", "symbol": "/", "note": "δίπλα σε αριθμό: 1234/2020"} in command_list()
 
 
 @pytest.mark.parametrize(

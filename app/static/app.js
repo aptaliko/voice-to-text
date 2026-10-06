@@ -410,27 +410,91 @@ window.addEventListener("beforeunload", (event) => {
   if (recorder || pending.length) event.preventDefault();
 });
 
-async function loadCommands() {
-  try {
-    const response = await fetch("/api/commands");
-    if (!response.ok) return;
-    const body = $("commands");
-    for (const { say, symbol, note } of await response.json()) {
-      const row = body.insertRow();
-      const sayCell = row.insertCell();
-      sayCell.textContent = `«${say}»`;
-      if (note) {
-        const small = document.createElement("small");
-        small.textContent = note;
-        sayCell.append(document.createElement("br"), small);
-      }
-      const cell = row.insertCell();
-      cell.className = "symbol";
-      cell.textContent = symbol;
-    }
-  } catch (_) { /* help is optional */ }
+// ---------- dictation dictionary («Λεξικό υπαγόρευσης») ----------
+
+const guide = $("guide");
+let guideLoaded = false;
+
+function plain(text) {
+  // Lower case without accents, so a search for «ανω» finds «άνω».
+  return text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
 }
 
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+function renderGuide(sections) {
+  const body = $("guide-body");
+  body.innerHTML = "";
+  for (const section of sections) {
+    const block = el("section", "guide-section");
+    block.append(el("h3", "", section.title));
+    for (const row of section.rows) {
+      const item = el("div", "guide-row");
+      item.append(el("div", "guide-written", row.written));
+      const details = el("div", "guide-details");
+      const say = el("div", "guide-say");
+      say.append(el("span", "muted", "Λέτε: "));
+      row.say.forEach((phrase, i) => {
+        if (i) say.append(el("span", "muted", " ή "));
+        say.append(el("strong", "", `«${phrase}»`));
+      });
+      details.append(say);
+      for (const example of row.examples) {
+        const ex = el("div", "guide-example");
+        ex.append(el("span", "guide-spoken", `«${example.say}»`), el("span", "muted", " → "), el("span", "guide-result", example.result));
+        details.append(ex);
+      }
+      if (row.note) details.append(el("div", "guide-note", row.note));
+      item.append(details);
+      item.dataset.search = plain([row.written, row.note, ...row.say, ...row.examples.map((e) => e.say)].join(" "));
+      block.append(item);
+    }
+    body.append(block);
+  }
+}
+
+function filterGuide() {
+  const query = plain($("guide-search").value.trim());
+  let shown = 0;
+  for (const section of document.querySelectorAll(".guide-section")) {
+    let visible = 0;
+    for (const row of section.querySelectorAll(".guide-row")) {
+      const match = !query || row.dataset.search.includes(query);
+      row.hidden = !match;
+      visible += match;
+    }
+    section.hidden = !visible;
+    shown += visible;
+  }
+  $("guide-empty").hidden = shown > 0;
+}
+
+async function openGuide() {
+  guide.showModal();
+  $("guide-search").focus();
+  if (guideLoaded) return;
+  try {
+    const response = await fetch("/api/guide");
+    if (!response.ok) throw new Error(await errorMessage(response));
+    renderGuide(await response.json());
+    guideLoaded = true;
+    filterGuide();
+  } catch (err) {
+    $("guide-body").textContent = `Δεν φορτώθηκε το λεξικό: ${err.message}`;
+  }
+}
+
+$("guide-open").addEventListener("click", openGuide);
+$("guide-close").addEventListener("click", () => guide.close());
+$("guide-print").addEventListener("click", () => window.print());
+$("guide-search").addEventListener("input", filterGuide);
+// Clicking the dark area around the window closes it.
+guide.addEventListener("click", (event) => { if (event.target === guide) guide.close(); });
+
 loadDraft();
-loadCommands();
 loadConfig();

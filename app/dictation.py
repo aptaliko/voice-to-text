@@ -99,17 +99,17 @@ def _replacement(command: Command) -> str:
 # «παρένθεση»: «άλφα παρένθεση» -> "α)".
 # Greek list letters, as Whisper spells their names. «στίγμα» is the
 # traditional sixth item (στ).
-_LETTER_NAMES = {
+LETTER_NAMES = {
     "άλφα": "α", "βήτα": "β", "γάμα": "γ", "γάμμα": "γ", "δέλτα": "δ", "έψιλον": "ε",
     "στίγμα": "στ", "ζήτα": "ζ", "ήτα": "η", "θήτα": "θ", "γιώτα": "ι", "κάπα": "κ",
     "λάμδα": "λ", "λάμβδα": "λ", "μι": "μ", "νι": "ν", "ξι": "ξ", "όμικρον": "ο",
     "πι": "π", "ρο": "ρ", "σίγμα": "σ", "ταυ": "τ",
 }
-_LETTERS = {normalize(name): letter for name, letter in _LETTER_NAMES.items()}
+_LETTERS = {normalize(name): letter for name, letter in LETTER_NAMES.items()}
 # Single letters as Whisper may write them. «η» and «ο» are left out because
 # they are also articles («η παρένθεση»).
 _SINGLE_LETTERS = "αβγδεζθικλμνξπρστυφχψω"
-_LETTER = rf"(?:{'|'.join(_fuzzy(w) for w in sorted(_LETTER_NAMES, key=len, reverse=True))}|στ|[{_SINGLE_LETTERS}])"
+_LETTER = rf"(?:{'|'.join(_fuzzy(w) for w in sorted(LETTER_NAMES, key=len, reverse=True))}|στ|[{_SINGLE_LETTERS}])"
 _PARENTHESIS = _fuzzy("παρένθεση")
 _LETTER_ITEM = re.compile(
     rf"[,.]?[ \t]*\b(?P<marker>{_LETTER})[ \t]+{_PARENTHESIS}\b[,.]?[ \t]*", re.IGNORECASE
@@ -158,9 +158,10 @@ _COMPILED = [
 # «κεφαλαία γράμματα» … «μικρά γράμματα» writes the words in between in capitals.
 # The full phrase is required: «κεφαλαία» alone also means capital (funds).
 _CAPS_ON, _CAPS_OFF = "\x03", "\x04"
+CAPS_ON_PHRASE, CAPS_OFF_PHRASE = "κεφαλαία γράμματα", "μικρά γράμματα"
 _CAPS_COMMANDS = [
     (re.compile(rf",?[ \t]*\b{_fuzzy(phrase)}\b[,.]?[ \t]*", re.IGNORECASE), f" {marker}")
-    for phrase, marker in (("κεφαλαία γράμματα", _CAPS_ON), ("μικρά γράμματα", _CAPS_OFF))
+    for phrase, marker in ((CAPS_ON_PHRASE, _CAPS_ON), (CAPS_OFF_PHRASE, _CAPS_OFF))
 ]
 
 
@@ -200,22 +201,3 @@ def apply_commands(text: str) -> str:
     text = re.sub(r"([(«]) +| +([)»,.·:;!%])", lambda m: m.group(1) or m.group(2), text)
     text = re.sub(r" {2,}", " ", text)
     return text.strip()
-
-
-def command_list() -> list[dict]:
-    """Commands as shown in the page's help (one row per spoken phrase)."""
-    rows, seen = [], set()
-    for command in COMMANDS:
-        if command.phrases in seen:
-            continue
-        seen.add(command.phrases)
-        symbol = {"\n\n": "¶", "\n": "↵"}.get(command.symbol, command.symbol)
-        rows.append({"say": command.phrases[0], "symbol": symbol, "note": command.note})
-    rows.append({"say": "κεφαλαία γράμματα", "symbol": "ΑΒΓ", "note": "μέχρι «μικρά γράμματα»"})
-    rows.append({"say": "μικρά γράμματα", "symbol": "αβγ", "note": "επιστροφή σε πεζά"})
-    rows.append({"say": "αρίθμηση ένα", "symbol": "1)", "note": "αρίθμηση σε νέα γραμμή"})
-    rows.append({"say": "άλφα παρένθεση", "symbol": "α)", "note": "ή «αρίθμηση άλφα» · βήτα, γάμα, … στίγμα (στ)"})
-    rows.append({"say": "είκοσι εννέα", "symbol": "… (29)", "note": "ολογράφως και αριθμητικά: είκοσι εννέα (29)"})
-    rows.append({"say": "ογδόντα πέντε τετραγωνικά μέτρα", "symbol": "… (85 τ.μ.)", "note": "και «85 τ.μ.» → ολογράφως"})
-    rows.append({"say": "άνοιγμα παρένθεσης δύο κλείσιμο παρένθεσης", "symbol": "(2)", "note": "μόνο ο αριθμός"})
-    return rows

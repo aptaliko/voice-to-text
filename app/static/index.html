@@ -20,11 +20,8 @@
           <span class="dot"></span><span id="record-label">Έναρξη εγγραφής</span>
         </button>
         <div id="timer" class="timer" hidden>00:00</div>
-        <p class="hint">Μια μεγάλη παύση ξεκινά νέα παράγραφο. Για σύμβολα, πείτε τη λέξη:</p>
-        <details class="commands">
-          <summary>Φωνητικές εντολές</summary>
-          <table><tbody id="commands"></tbody></table>
-        </details>
+        <p class="hint">Για σημεία στίξης, αρίθμηση και αριθμούς υπάρχουν συγκεκριμένες λέξεις.</p>
+        <button id="guide-open" type="button" class="guide-button">Λεξικό υπαγόρευσης</button>
         <div id="ai-options" class="ai-options" hidden>
           <label class="toggle"><input id="ai-toggle" type="checkbox" checked> Διόρθωση ορθογραφίας με AI</label>
           <small id="ai-status" class="ai-status"></small>
@@ -69,6 +66,18 @@
       <p id="status" class="status" role="status"></p>
     </section>
   </main>
+
+  <dialog id="guide" class="guide" aria-labelledby="guide-title">
+    <div class="guide-head">
+      <h2 id="guide-title">Λεξικό υπαγόρευσης</h2>
+      <button id="guide-print" type="button">Εκτύπωση</button>
+      <button id="guide-close" type="button" aria-label="Κλείσιμο">✕</button>
+    </div>
+    <p class="hint">Τι να λέτε ώστε το κείμενο να γράφεται σωστά. Τα παραδείγματα δείχνουν ακριβώς τι γράφει η εφαρμογή.</p>
+    <input id="guide-search" type="search" placeholder="Αναζήτηση, π.χ. «:» ή «παύλα»" autocomplete="off">
+    <div id="guide-body"><p class="muted">Φόρτωση…</p></div>
+    <p id="guide-empty" class="muted" hidden>Δεν βρέθηκε κάτι.</p>
+  </dialog>
 
   <script src="/static/app.js"></script>
 </body>

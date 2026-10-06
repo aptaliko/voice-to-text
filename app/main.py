@@ -13,7 +13,7 @@ from pydantic import BaseModel
 
 from . import correction, ocr, transcribe
 from .config import settings
-from .dictation import command_list
+from .guide import build_guide
 from .docx_export import build_docx
 from .jobs import JobQueue
 
@@ -72,9 +72,9 @@ def health() -> dict:
     return {"status": "ok"}
 
 
-@app.get("/api/commands", dependencies=[Depends(require_auth)])
-def commands() -> list[dict]:
-    return command_list()
+@app.get("/api/guide", dependencies=[Depends(require_auth)])
+def guide() -> list[dict]:
+    return build_guide()
 
 
 @app.get("/api/config", dependencies=[Depends(require_auth)])

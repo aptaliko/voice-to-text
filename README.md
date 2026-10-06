@@ -17,7 +17,7 @@ The only outbound connections are one-time model downloads: Whisper (~1.6 GB) on
 
 ### Voice commands for symbols
 
-Say the word and it is replaced by the symbol. The full list is under «Φωνητικές εντολές» in the page.
+Say the word and it is replaced by the symbol. Users find the full list, with live examples and search, under the «Λεξικό υπαγόρευσης» button in the page (built by `app/guide.py`, printable).
 
 | Say | Get | Example |
 |---|---|---|
@@ -54,7 +54,7 @@ Dictated numbers are written the contract way: in words, then digits in parenthe
 
 Numbered items in scanned documents also keep their own line (`1)`, `2.`, `α)`).
 «κάθετος» and «τοις εκατό» only turn into symbols next to a number, so «κάθετος τοίχος» or «πενήντα τοις εκατό» stay as words.
-To add a command, add a line to `COMMANDS` in `app/dictation.py` (and a test case in `tests/test_dictation.py`).
+To add a command, add a line to `COMMANDS` in `app/dictation.py`, an entry in `app/guide.py` (the in-page dictionary; `tests/test_guide.py` fails if one is missing) and a test case in `tests/test_dictation.py`.
 
 ## AI spelling correction (optional)
 

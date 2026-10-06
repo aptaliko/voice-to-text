@@ -106,7 +106,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .editor { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 label { display: flex; flex-direction: column; gap: 4px; font-size: 0.9rem; color: var(--muted); }
-input[type="text"], textarea {
+input[type="text"], input[type="search"], textarea {
   font: inherit;
   color: var(--text);
   background: var(--bg);
@@ -122,13 +122,6 @@ textarea { min-height: 55vh; resize: vertical; line-height: 1.6; }
 .status { margin: 0; min-height: 1.5em; color: var(--muted); font-size: 0.9rem; }
 .status.error { color: var(--danger); }
 
-.commands { margin-bottom: 12px; font-size: 0.9rem; }
-.commands summary { cursor: pointer; color: var(--accent); }
-.commands table { border-collapse: collapse; margin-top: 8px; width: 100%; }
-.commands td { padding: 3px 0; border-bottom: 1px solid var(--border); }
-.commands td.symbol { text-align: right; font-weight: 600; font-size: 1rem; padding-left: 12px; }
-.commands small { color: var(--muted); }
-
 .ai-options { margin-bottom: 12px; display: flex; flex-direction: column; gap: 2px; }
 .toggle { flex-direction: row; align-items: center; gap: 8px; color: var(--text); font-size: 0.95rem; cursor: pointer; }
 .ai-status { color: var(--muted); }
@@ -139,3 +132,53 @@ textarea { min-height: 55vh; resize: vertical; line-height: 1.6; }
 .corrections li { margin-bottom: 4px; }
 .corrections small { color: var(--muted); }
 .corrections button { font-size: 0.85rem; padding: 4px 10px; }
+
+.guide-button { width: 100%; margin-bottom: 12px; }
+
+.guide {
+  width: min(860px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--text);
+}
+.guide::backdrop { background: rgb(0 0 0 / 0.45); }
+.guide-head { display: flex; align-items: center; gap: 8px; }
+.guide-head h2 { margin: 0; flex: 1; }
+.guide-head #guide-close { padding: 6px 12px; }
+#guide-search { margin: 4px 0 12px; }
+.guide-section h3 { margin: 18px 0 8px; font-size: 1rem; color: var(--accent); }
+.guide-row {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+.guide-row[hidden], .guide-section[hidden] { display: none; }
+.guide-written { font-size: 1.4rem; font-weight: 700; white-space: pre-wrap; word-break: break-word; }
+.guide-details { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.guide-example { font-size: 0.9rem; }
+.guide-spoken { font-style: italic; }
+.guide-result {
+  white-space: pre-wrap;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0 4px;
+}
+.guide-note { font-size: 0.85rem; color: var(--muted); }
+
+@media (max-width: 600px) {
+  .guide { padding: 14px; }
+  .guide-row { grid-template-columns: 1fr; gap: 4px; }
+}
+
+@media print {
+  body > *:not(.guide) { display: none !important; }
+  .guide { position: static; width: auto; max-height: none; border: none; padding: 0; overflow: visible; }
+  .guide-head button, #guide-search, .guide::backdrop { display: none; }
+  .guide-row { break-inside: avoid; }
+}
