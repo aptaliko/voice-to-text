@@ -9,6 +9,31 @@ A small self-hosted web app for drafting Greek property-sale contracts:
 Everything runs on your own server. No audio or document leaves it, and no external API is called.
 The only outbound connections are one-time model downloads: Whisper (~1.6 GB) on the first transcription and, if you enable it, the AI correction model.
 
+## Supported files
+
+Several files can be selected at once. Each file can be up to **200 MB** (`MAX_UPLOAD_MB` in `.env`).
+
+**Audio** («Ανέβασμα ηχητικού αρχείου»), transcribed to text:
+
+| Format | Typical source |
+|---|---|
+| `.m4a`, `.mp4`, `.aac` | iPhone Voice Memos, most phone recorders |
+| `.mp3`, `.wav`, `.flac` | dictaphones, computer recordings |
+| `.ogg`, `.oga`, `.opus`, `.webm` | Android recorders, WhatsApp voice messages, recordings made in the browser |
+| `.amr`, `.3gp` | older phones and call recorders |
+
+**Documents** («Σάρωση εγγράφου»), text read with OCR (Greek and English):
+
+| Format | Notes |
+|---|---|
+| `.pdf` | Scanned PDFs are read with OCR. PDFs that already contain text (e.g. exported from Word) are read directly, which is faster and exact. Multi-page PDFs are fine. |
+| `.jpg`, `.jpeg`, `.png`, `.webp`, `.bmp` | Photos or scans of pages. Phone photo orientation is corrected automatically. |
+| `.tif`, `.tiff` | Scanner output, including multi-page TIFF. |
+
+Not supported: Word files (`.doc`, `.docx`, open them in Word and copy the text instead) and iPhone `.heic` photos.
+On an iPhone, choosing a photo from the upload button usually converts it to JPEG automatically; if not, set **Settings → Camera → Formats → Most Compatible**.
+For the best OCR results, photograph pages flat, straight on and in good light, or scan at 300 dpi.
+
 ## Dictation tips
 
 - Dictate in chunks (one clause per recording). Each result is appended to the text in order.
